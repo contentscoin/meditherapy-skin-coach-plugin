@@ -2,7 +2,9 @@
 
 **메디테라피 스킨 코치**는 고객의 피부고민을 제품 추천에서 끝내지 않고, 개인 루틴 추천 → GPT 할 일/체크인 관리 → 익명 사용 데이터 저장 → OpenCrab 온톨로지팩 개선 신호로 연결하는 K-뷰티 AI 코치 플러그인입니다.
 
-이 repo는 ChatGPT Actions/플러그인 연결을 위한 **API, OpenAPI 스펙, plugin manifest, Convex DB schema/functions**를 담고 있습니다.
+이 repo는 ChatGPT Apps SDK / MCP 연결을 위한 **MCP endpoint, 앱 UI resource, 제품 추천 API, OpenAPI 보조 스펙, plugin manifest 보조 파일, Convex DB schema/functions**를 담고 있습니다.
+
+등록 매뉴얼: [`docs/CHATGPT_APPS_REGISTRATION.md`](docs/CHATGPT_APPS_REGISTRATION.md)
 
 현재 추천 API는 **CrabAgent V2 제품 온톨로지팩**을 로컬 경량 인덱스로 사용합니다. 제품 223개를 86개 제품 패밀리로 정리하고, 피부고민·성분 cue·루틴 역할·안전룰·추천 근거를 기준으로 reranking합니다.
 
@@ -18,6 +20,7 @@
 
 | 항목 | URL |
 |---|---|
+| MCP Endpoint | https://meditherapy-skin-coach-dashboard.vercel.app/api/mcp |
 | Plugin Manifest | https://meditherapy-skin-coach-dashboard.vercel.app/.well-known/ai-plugin.json |
 | OpenAPI Spec | https://meditherapy-skin-coach-dashboard.vercel.app/openapi.yaml |
 | API Catalog | https://meditherapy-skin-coach-dashboard.vercel.app/.well-known/api-catalog |
