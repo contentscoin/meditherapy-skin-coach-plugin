@@ -128,7 +128,7 @@ export const summary = query({
     const answers = recommendations;
     const schedules = events.filter((event) => event.eventType === "task_schedule_created").length;
     const productShown = recommendations;
-    const productClicks = events.filter((event) => event.eventType === "product_feedback" && event.action === "product_link_clicked").length;
+    const productClicks = events.filter((event) => event.eventType === "product_feedback" && ["product_link_clicked", "product_link_click"].includes(event.action ?? "")).length;
     const feedback = events.filter((event) => event.eventType === "product_feedback").length;
     const checkins = events.filter((event) => event.eventType === "checkin").length;
     const day7 = events.filter((event) => event.eventType === "checkin" && (event.checkinDay ?? 0) >= 7).length;

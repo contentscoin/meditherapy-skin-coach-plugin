@@ -45,7 +45,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const schedules = funnel.schedules ?? base.eventCounts?.task_schedule_created ?? 0;
   const recentEvents = (recent as AnyEvent[]) ?? [];
   const productShown = funnel.productShown ?? recommendations;
-  const productClicks = funnel.productClicks ?? recentEvents.filter((event) => event.eventType === "product_feedback" && event.action === "product_link_clicked").length;
+  const productClicks = funnel.productClicks ?? recentEvents.filter((event) => event.eventType === "product_feedback" && ["product_link_clicked", "product_link_click"].includes(event.action ?? "")).length;
   const feedback = funnel.feedback ?? (base.eventCounts?.product_feedback ?? 0);
   const checkins = funnel.checkins ?? base.eventCounts?.checkin ?? 0;
   const questions = funnel.questions ?? recommendations;

@@ -30,7 +30,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     userHash: anonHash({ productId, routineId, day: new Date().toISOString().slice(0, 10) }),
     routineId,
     productIds: cleanArray([productId]),
-    action: "product_link_click",
+    action: "product_link_clicked",
     metadata: { source: "product_click_redirect", privacy: "sanitized_no_pii", raw_text_stored: false, targetHost: new URL(target).hostname },
   });
   res.setHeader("Location", target);
