@@ -25,6 +25,7 @@
 | OpenAPI Spec | https://meditherapy-skin-coach-dashboard.vercel.app/openapi.yaml |
 | API Catalog | https://meditherapy-skin-coach-dashboard.vercel.app/.well-known/api-catalog |
 | Privacy Policy | https://meditherapy-skin-coach-dashboard.vercel.app/privacy.html |
+| Owner Dashboard | https://meditherapy-skin-coach-dashboard.vercel.app/owner-dashboard.html |
 | Dashboard | https://meditherapy-skin-coach-dashboard.vercel.app |
 | GitHub Plugin Repo | https://github.com/contentscoin/meditherapy-skin-coach-plugin |
 
