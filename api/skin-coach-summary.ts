@@ -14,6 +14,15 @@ type AnyEvent = {
   metadata?: Record<string, unknown>;
 };
 
+function topActions(events: AnyEvent[]) {
+  const counts = new Map<string, number>();
+  for (const event of events) {
+    if (event.eventType !== "product_feedback" || !event.action) continue;
+    counts.set(event.action, (counts.get(event.action) ?? 0) + 1);
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([value, count]) => ({ value, count }));
+}
+
 function sanitizeRecent(events: AnyEvent[]) {
   return events.slice(0, 30).map((event) => ({
     occurredAt: event.occurredAt,
@@ -70,6 +79,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       checkinRate: recommendations ? checkins / recommendations : 0,
     },
     recentActivity: sanitizeRecent(recentEvents),
+    topFeedbackActions: base.topFeedbackActions ?? topActions(recentEvents),
     privacyGuard: {
       rawTextStored: false,
       piiStored: false,

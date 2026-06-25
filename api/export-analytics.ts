@@ -12,6 +12,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const range = rangeValue === "24h" || rangeValue === "7d" ? rangeValue : "all";
   const format = first(req.query?.format) === "csv" ? "csv" : "json";
   const summary = await skinCoachSummary(range);
+  const s = summary as any;
+  const funnel = s.funnel ?? {};
+  const eventCounts = s.eventCounts ?? {};
+  const recommendations = funnel.recommendations ?? eventCounts.routine_recommendation ?? 0;
+  const schedules = funnel.schedules ?? eventCounts.task_schedule_created ?? 0;
+  const checkins = funnel.checkins ?? eventCounts.checkin ?? 0;
+  const feedback = funnel.feedback ?? eventCounts.product_feedback ?? 0;
+  const productClicks = funnel.productClicks ?? 0;
   const safe = {
     exportedAt: new Date().toISOString(),
     range,
@@ -21,14 +29,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (format === "json") return res.status(200).json(safe);
   const rows = [
     ["metric", "value"],
-    ["totalEvents", (summary as any).totalEvents ?? 0],
-    ["questions", (summary as any).funnel?.questions ?? 0],
-    ["answers", (summary as any).funnel?.answers ?? 0],
-    ["recommendations", (summary as any).funnel?.recommendations ?? 0],
-    ["schedules", (summary as any).funnel?.schedules ?? 0],
-    ["checkins", (summary as any).funnel?.checkins ?? 0],
-    ["productClicks", (summary as any).funnel?.productClicks ?? 0],
-    ["avgSatisfaction", (summary as any).avgSatisfaction ?? 0],
+    ["totalEvents", s.totalEvents ?? 0],
+    ["questions", funnel.questions ?? recommendations],
+    ["answers", funnel.answers ?? recommendations],
+    ["recommendations", recommendations],
+    ["schedules", schedules],
+    ["checkins", checkins],
+    ["productClicks", productClicks],
+    ["feedback", feedback],
+    ["avgSatisfaction", s.avgSatisfaction ?? 0],
   ];
   res.setHeader("Content-Type", "text/csv; charset=utf-8");
   res.setHeader("Content-Disposition", `attachment; filename="meditherapy-owner-analytics-${range}.csv"`);
