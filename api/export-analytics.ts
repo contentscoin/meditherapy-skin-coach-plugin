@@ -1,4 +1,4 @@
-import { cors, rateLimit, skinCoachSummary, VercelRequest, VercelResponse } from "./_shared.js";
+import { cors, rateLimit, recentSkinCoachEvents, skinCoachSummary, VercelRequest, VercelResponse } from "./_shared.js";
 
 function first(value: unknown) { return Array.isArray(value) ? value[0] : value; }
 function csvEscape(value: unknown) { return `"${String(value ?? "").replace(/"/g, '""')}"`; }
@@ -11,15 +11,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const rangeValue = first(req.query?.range);
   const range = rangeValue === "24h" || rangeValue === "7d" ? rangeValue : "all";
   const format = first(req.query?.format) === "csv" ? "csv" : "json";
-  const summary = await skinCoachSummary(range);
+  const [summary, recent] = await Promise.all([skinCoachSummary(range), recentSkinCoachEvents(100)]);
   const s = summary as any;
+  const recentEvents = (recent as Array<{ eventType?: string; action?: string }>) ?? [];
   const funnel = s.funnel ?? {};
   const eventCounts = s.eventCounts ?? {};
   const recommendations = funnel.recommendations ?? eventCounts.routine_recommendation ?? 0;
   const schedules = funnel.schedules ?? eventCounts.task_schedule_created ?? 0;
   const checkins = funnel.checkins ?? eventCounts.checkin ?? 0;
   const feedback = funnel.feedback ?? eventCounts.product_feedback ?? 0;
-  const productClicks = funnel.productClicks ?? 0;
+  const productClicks = funnel.productClicks ?? recentEvents.filter((event) => event.eventType === "product_feedback" && ["product_link_clicked", "product_link_click"].includes(event.action ?? "")).length;
   const safe = {
     exportedAt: new Date().toISOString(),
     range,
