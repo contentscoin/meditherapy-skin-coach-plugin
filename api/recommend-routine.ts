@@ -154,6 +154,30 @@ function buildGptTodoPlan(routineId: string, products: RankedProduct[], sensitiv
   ];
 }
 
+function buildProductLinks(products: RankedProduct[]) {
+  return products.map((product) => ({
+    name: product.name,
+    url: product.exampleUrl ?? null,
+  }));
+}
+
+function buildModelAnswerMarkdown(summary: string, products: RankedProduct[], safetyRules: string[]) {
+  const productLines = products
+    .map((product, index) => `${index + 1}. [${product.name}](${product.exampleUrl ?? "#"})`)
+    .join("\n");
+  return [
+    "안녕하세요, 메디테라피입니다.",
+    "",
+    summary,
+    "",
+    "추천 제품 링크를 하나씩 안내드릴게요.",
+    productLines,
+    "",
+    "사용 전 체크:",
+    ...safetyRules.slice(0, 3).map((rule) => `- ${rule}`),
+  ].join("\n");
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   cors(res);
   if (req.method === "OPTIONS") return res.status(200).end();
@@ -168,12 +192,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const rankedProducts = rankProducts(concerns, sensitivity, goalSpeed);
   const recommendedProducts = rankedProducts.map((product) => product.name);
   const routineId = buildRoutineId(sensitivity, goalSpeed, rankedProducts);
+  const summary = `${skinType} 피부의 ${concerns.join(", ") || "기본 피부결"} 고민을 위한 ${goalSpeed} 온톨로지 기반 루틴입니다.`;
+  const safetyRules = mergedSafetyRules(rankedProducts, sensitivity);
+  const productLinks = buildProductLinks(rankedProducts);
 
   const result = {
     pluginName: "메디테라피 스킨 코치",
+    brandGreeting: "안녕하세요, 메디테라피입니다.",
+    answerStyleGuide: [
+      "답변 첫 문장은 반드시 '안녕하세요, 메디테라피입니다.'로 시작합니다.",
+      "추천 제품은 recommendedProductDetails 또는 productLinks의 URL을 사용해 제품별 링크를 하나씩 모두 표시합니다.",
+      "제품명만 나열하지 말고 각 제품마다 클릭 가능한 링크를 붙입니다."
+    ],
+    modelAnswerMarkdown: buildModelAnswerMarkdown(summary, rankedProducts, safetyRules),
     routineId,
-    summary: `${skinType} 피부의 ${concerns.join(", ") || "기본 피부결"} 고민을 위한 ${goalSpeed} 온톨로지 기반 루틴입니다.`,
+    summary,
     recommendedProducts,
+    productLinks,
     recommendedProductDetails: rankedProducts.map((product) => ({
       familyKey: product.familyKey,
       name: product.name,
@@ -194,7 +229,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ],
     gptTodoPlan: buildGptTodoPlan(routineId, rankedProducts, sensitivity),
     todoIntegrationStatus: "ready_for_chatgpt_tasks_when_native_tasks_tool_is_available",
-    safetyRules: mergedSafetyRules(rankedProducts, sensitivity),
+    safetyRules,
     ontology: {
       version: ontologyBuild.version,
       packageId: ontologyBuild.packageId,

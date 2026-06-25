@@ -12,7 +12,7 @@ paths:
     post:
       operationId: recommendRoutine
       summary: 피부고민 기반 메디테라피 루틴 추천
-      description: 피부타입, 고민, 민감도, 목표 속도를 받아 CrabAgent V2 제품 온톨로지 기반으로 제품 패밀리를 검색/reranking하고 루틴과 체크인 일정을 추천합니다. consentForAnalytics가 true일 때만 익명 이벤트를 저장합니다.
+      description: 피부타입, 고민, 민감도, 목표 속도를 받아 CrabAgent V2 제품 온톨로지 기반으로 제품 패밀리를 검색/reranking하고 루틴과 체크인 일정을 추천합니다. 응답에는 '안녕하세요, 메디테라피입니다.'로 시작하는 modelAnswerMarkdown과 추천 제품별 실제 링크가 포함됩니다. consentForAnalytics가 true일 때만 익명 이벤트를 저장합니다.
       requestBody:
         required: true
         content:
@@ -55,6 +55,16 @@ paths:
                 properties:
                   pluginName:
                     type: string
+                  brandGreeting:
+                    type: string
+                    description: 답변 시작 인사. 모델은 답변 첫 문장에 이 값을 사용합니다.
+                  answerStyleGuide:
+                    type: array
+                    items:
+                      type: string
+                  modelAnswerMarkdown:
+                    type: string
+                    description: 메디테라피 인사와 제품별 클릭 링크를 포함한 권장 답변 초안
                   routineId:
                     type: string
                   summary:
@@ -63,6 +73,16 @@ paths:
                     type: array
                     items:
                       type: string
+                  productLinks:
+                    type: array
+                    description: 추천 제품별 실제 상세페이지 링크. 답변 시 제품마다 하나씩 모두 표시합니다.
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        url:
+                          type: string
                   recommendedProductDetails:
                     type: array
                     description: CrabAgent V2 온톨로지 기반 추천 근거와 점수

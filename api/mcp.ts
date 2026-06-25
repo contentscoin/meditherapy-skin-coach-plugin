@@ -54,7 +54,7 @@ function createSkinCoachServer() {
     "recommend_skin_routine",
     {
       title: "메디테라피 루틴 추천",
-      description: "피부타입, 피부고민, 민감도, 목표 속도를 받아 메디테라피 제품 온톨로지 기반 루틴과 GPT 할일 계획을 추천합니다.",
+      description: "피부타입, 피부고민, 민감도, 목표 속도를 받아 메디테라피 제품 온톨로지 기반 루틴과 GPT 할일 계획을 추천합니다. 답변은 반드시 '안녕하세요, 메디테라피입니다.'로 시작하고 추천 제품별 실제 링크를 하나씩 모두 포함합니다.",
       inputSchema: {
         skinType: z.string().optional().describe("예: 복합성, 민감성, 건성"),
         concerns: z.array(z.string()).default([]).describe("예: 피부결, 모공, 트러블, 잡티"),
@@ -83,13 +83,13 @@ function createSkinCoachServer() {
         };
       }
       const data = await response.json();
-      const products = Array.isArray(data.recommendedProducts) ? data.recommendedProducts.slice(0, 5).join(", ") : "추천 없음";
+      const answerMarkdown = typeof data.modelAnswerMarkdown === "string" ? data.modelAnswerMarkdown : "안녕하세요, 메디테라피입니다.";
       const todos = Array.isArray(data.gptTodoPlan) ? data.gptTodoPlan.map((todo: { title?: string }) => todo.title).join(" / ") : "할일 계획 없음";
       return {
         content: [
           {
             type: "text",
-            text: `추천 루틴: ${data.routineId}\n추천 제품: ${products}\nGPT 할일 계획: ${todos}`,
+            text: `${answerMarkdown}\n\nGPT 할일 계획: ${todos}`,
           },
         ],
         structuredContent: data,
