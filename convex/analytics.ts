@@ -124,6 +124,8 @@ export const summary = query({
     const totalEvents = events.length;
     const eventCounts = Object.fromEntries(top(events.map((event) => event.eventType), 20).map((x) => [x.value, x.count]));
     const recommendations = events.filter((event) => event.eventType === "routine_recommendation").length;
+    const questions = recommendations;
+    const answers = recommendations;
     const schedules = events.filter((event) => event.eventType === "task_schedule_created").length;
     const checkins = events.filter((event) => event.eventType === "checkin").length;
     const day7 = events.filter((event) => event.eventType === "checkin" && (event.checkinDay ?? 0) >= 7).length;
@@ -137,11 +139,15 @@ export const summary = query({
       totalEvents,
       eventCounts,
       funnel: {
+        questions,
+        answers,
         recommendations,
         schedules,
         checkins,
         day7,
+        answerRate: questions ? answers / questions : 0,
         scheduleRate: recommendations ? schedules / recommendations : 0,
+        checkinRate: recommendations ? checkins / recommendations : 0,
         day7CompletionRate: recommendations ? day7 / recommendations : 0,
       },
       avgSatisfaction,
@@ -151,9 +157,34 @@ export const summary = query({
       topSkinTypes: top(events.map((event) => event.skinType), 8),
       topRoutines: top(events.map((event) => event.routineId), 8),
       topProducts: top(flatten(events.map((event) => event.productIds)), 8),
+      recentActivity: events
+        .slice()
+        .sort((a, b) => Date.parse(b.occurredAt) - Date.parse(a.occurredAt))
+        .slice(0, 20)
+        .map((event) => ({
+          occurredAt: event.occurredAt,
+          eventType: event.eventType,
+          skinType: event.skinType,
+          concerns: event.concerns,
+          routineId: event.routineId,
+          productIds: event.productIds,
+          checkinDay: event.checkinDay,
+          satisfactionScore: event.satisfactionScore,
+          action: event.action,
+          localeBucket: event.localeBucket,
+          privacy: event.metadata?.privacy ?? "sanitized_no_pii",
+          rawTextStored: event.metadata?.raw_text_stored === true,
+        })),
+      privacyGuard: {
+        rawTextStored: false,
+        piiStored: false,
+        userHashExposed: false,
+        note: "대시보드는 원문 질문/답변, 이름, 연락처, 주소, 주문번호, 결제정보를 저장하거나 노출하지 않고 구조화된 익명 지표만 표시합니다.",
+      },
       ontologyGaps: { count: events.filter((event) => event.eventType === "ontology_gap").length, fields: ontologyGapFields },
       insights: [
-        { type: "routine", summary: recommendations ? `루틴 추천 ${recommendations}건 중 Day7 체크인 ${day7}건입니다.` : "아직 루틴 추천 이벤트가 없습니다." },
+        { type: "plugin", summary: `플러그인 질문 ${questions}건, 답변 생성 ${answers}건입니다.` },
+        { type: "routine", summary: recommendations ? `루틴 추천 ${recommendations}건 중 루틴 일정 사용 ${schedules}건, Day7 체크인 ${day7}건입니다.` : "아직 루틴 추천 이벤트가 없습니다." },
         { type: "safety", summary: `자극 점수 3점 이상 이벤트는 ${irritationEvents}건입니다.` },
         { type: "ontology", summary: ontologyGapFields.length ? `${ontologyGapFields[0].value} 보강 우선순위가 높습니다.` : "온톨로지 갭 이벤트가 아직 없습니다." },
       ],

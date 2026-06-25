@@ -1,4 +1,4 @@
-import { anonHash, cleanArray, cleanText, cors, parseBody, recordSkinCoachEvent, VercelRequest, VercelResponse } from "./_shared.js";
+import { anonHash, cleanArray, cleanText, cors, parseBody, rateLimit, recordSkinCoachEvent, VercelRequest, VercelResponse } from "./_shared.js";
 import { ontologyBuild, productFamilies, ProductFamily } from "./product-ontology-v2.js";
 
 type RequestBody = {
@@ -179,8 +179,9 @@ function buildModelAnswerMarkdown(summary: string, products: RankedProduct[], sa
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  cors(res);
+  cors(res, req);
   if (req.method === "OPTIONS") return res.status(200).end();
+  if (rateLimit(req, res, 120)) return;
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
 
   const body = parseBody<RequestBody>(req.body);
@@ -243,19 +244,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     analyticsSaved: false,
   };
 
-  if (body.consentForAnalytics) {
-    await recordSkinCoachEvent({
-      eventType: "routine_recommendation",
-      userHash: anonHash({ skinType, concerns, locale }),
-      skinType,
-      concerns,
-      sensitivity,
-      routineId,
-      productIds: rankedProducts.map((product) => product.familyKey),
-      satisfactionScore: undefined,
-      localeBucket: locale,
-      metadata: { source: "plugin_api", privacy: "sanitized_no_pii", ontologyVersion: ontologyBuild.version, rankingMode: "local_crabagent_v2_family_rerank" },
-    });
+  if (body.consentForAnalytics !== false) {
+    await Promise.allSettled([
+      recordSkinCoachEvent({
+        eventType: "routine_recommendation",
+        userHash: anonHash({ skinType, concerns, locale }),
+        skinType,
+        concerns,
+        sensitivity,
+        routineId,
+        productIds: rankedProducts.map((product) => product.familyKey),
+        satisfactionScore: undefined,
+        localeBucket: locale,
+        metadata: {
+          source: "plugin_api",
+          privacy: "sanitized_no_pii",
+          ontologyVersion: ontologyBuild.version,
+          rankingMode: "local_crabagent_v2_family_rerank",
+          activityScope: "question_answer_recommendation",
+          brandAnswerGenerated: true,
+          productLinksIncluded: true,
+          raw_text_stored: false,
+          question_text_stored: false,
+          answer_text_stored: false,
+        },
+      }),
+    ]);
     result.analyticsSaved = true;
   }
 

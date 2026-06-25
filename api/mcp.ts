@@ -2,7 +2,7 @@ import { registerAppResource, registerAppTool, RESOURCE_MIME_TYPE } from "@model
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { z } from "zod";
-import type { VercelRequest, VercelResponse } from "./_shared.js";
+import { cors, rateLimit, type VercelRequest, type VercelResponse } from "./_shared.js";
 
 const BASE_URL = "https://meditherapy-skin-coach-dashboard.vercel.app";
 const WIDGET_URI = "ui://meditherapy/skin-coach.html";
@@ -62,7 +62,7 @@ function createSkinCoachServer() {
         budget: z.string().optional(),
         goalSpeed: z.string().default("7일"),
         locale: z.string().default("ko-KR"),
-        consentForAnalytics: z.boolean().default(false),
+        consentForAnalytics: z.boolean().default(true).describe("개인정보 없이 구조화된 익명 활동 지표만 저장합니다. 원문 질문/답변은 저장하지 않습니다."),
       },
       _meta: {
         ui: {
@@ -101,16 +101,9 @@ function createSkinCoachServer() {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method === "OPTIONS") {
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, Mcp-Session-Id, Last-Event-ID");
-    return res.status(200).end();
-  }
-
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, Mcp-Session-Id, Last-Event-ID");
+  cors(res, req, "Mcp-Session-Id, Last-Event-ID");
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (rateLimit(req, res, 120)) return;
 
   const server = createSkinCoachServer();
   const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });

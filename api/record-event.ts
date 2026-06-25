@@ -1,4 +1,4 @@
-import { anonHash, cleanArray, cleanText, cors, parseBody, recordSkinCoachEvent, VercelRequest, VercelResponse } from "./_shared.js";
+import { anonHash, cleanArray, cleanText, cors, parseBody, rateLimit, recordSkinCoachEvent, VercelRequest, VercelResponse } from "./_shared.js";
 
 type RequestBody = {
   eventType?: "routine_recommendation" | "task_schedule_created" | "checkin" | "routine_adjustment" | "product_feedback" | "ontology_gap";
@@ -20,8 +20,9 @@ type RequestBody = {
 const allowed = new Set(["routine_recommendation", "task_schedule_created", "checkin", "routine_adjustment", "product_feedback", "ontology_gap"]);
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  cors(res);
+  cors(res, req);
   if (req.method === "OPTIONS") return res.status(200).end();
+  if (rateLimit(req, res, 120)) return;
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });
 
   const body = parseBody<RequestBody>(req.body);
