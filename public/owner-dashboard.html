@@ -2,60 +2,128 @@
 <html lang="ko">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#c4512f" />
     <title>메디테라피 스킨 코치 오너 대시보드</title>
     <style>
-      :root { --bg:#fff7f3; --card:#fff; --line:#f0d6cb; --ink:#2f211d; --muted:#7a6259; --brand:#c4512f; --ok:#237a57; --warn:#b45309; }
-      * { box-sizing: border-box; }
-      body { margin:0; font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:var(--bg); color:var(--ink); }
-      header { padding:32px 24px 18px; max-width:1180px; margin:0 auto; }
-      main { max-width:1180px; margin:0 auto; padding:0 24px 48px; }
-      h1 { margin:0 0 8px; font-size:32px; }
-      h2 { margin:0 0 14px; font-size:19px; }
-      p { line-height:1.6; }
+      :root {
+        --bg:#fff7f3; --card:#fff; --line:#f0d6cb; --ink:#2f211d; --muted:#7a6259;
+        --brand:#c4512f; --brand2:#e0704e; --ok:#237a57; --warn:#b45309; --soft:#fff0e9;
+        --shadow:0 14px 34px rgba(148,80,52,.10);
+      }
+      * { box-sizing:border-box; }
+      html { -webkit-text-size-adjust:100%; }
+      body {
+        margin:0; font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+        background:linear-gradient(180deg,#fff7f3 0%,#fffdfb 100%); color:var(--ink);
+      }
+      header, main { width:min(1180px,100%); margin:0 auto; }
+      header { padding:calc(18px + env(safe-area-inset-top)) 16px 14px; }
+      main { padding:0 16px calc(84px + env(safe-area-inset-bottom)); }
+      h1 { margin:0 0 8px; font-size:clamp(24px,6.4vw,34px); line-height:1.12; letter-spacing:-.03em; }
+      h2 { margin:0 0 12px; font-size:clamp(17px,4.2vw,20px); letter-spacing:-.02em; }
+      p { line-height:1.58; margin:8px 0; }
       .muted { color:var(--muted); }
-      .toolbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:18px; }
-      button, select { border:1px solid var(--line); background:white; color:var(--ink); border-radius:12px; padding:10px 12px; font-weight:700; }
-      button { background:var(--brand); color:#fff; cursor:pointer; }
-      .grid { display:grid; gap:16px; }
-      .kpis { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-      .two { grid-template-columns: 1.1fr .9fr; }
-      .three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-      .card { background:var(--card); border:1px solid var(--line); border-radius:20px; padding:18px; box-shadow:0 14px 34px rgba(148,80,52,.10); }
-      .kpi .label { font-size:13px; color:var(--muted); }
-      .kpi .value { font-size:28px; font-weight:850; margin-top:6px; }
+      .hero {
+        position:sticky; top:0; z-index:5; backdrop-filter:blur(14px);
+        background:linear-gradient(180deg,rgba(255,247,243,.98),rgba(255,247,243,.86));
+        border-bottom:1px solid rgba(240,214,203,.75);
+      }
+      .toolbar {
+        display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center; margin-top:16px;
+      }
+      button, select {
+        min-height:44px; border:1px solid var(--line); background:white; color:var(--ink);
+        border-radius:14px; padding:10px 12px; font-weight:800; font-size:15px;
+      }
+      button { background:var(--brand); color:#fff; cursor:pointer; box-shadow:0 8px 20px rgba(196,81,47,.18); }
+      .updated { grid-column:1 / -1; font-size:12px; }
+      .grid { display:grid; gap:14px; }
+      .kpis { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .two, .three { grid-template-columns:1fr; }
+      .card {
+        background:rgba(255,255,255,.96); border:1px solid var(--line); border-radius:22px; padding:16px;
+        box-shadow:var(--shadow); overflow:hidden;
+      }
+      .kpi { min-height:116px; display:flex; flex-direction:column; justify-content:space-between; }
+      .kpi .label { font-size:12px; color:var(--muted); font-weight:800; }
+      .kpi .value { font-size:clamp(25px,8vw,34px); font-weight:900; margin-top:8px; letter-spacing:-.03em; }
       .kpi .sub { font-size:12px; color:var(--muted); margin-top:4px; }
-      .bar { display:grid; grid-template-columns: 120px 1fr 44px; align-items:center; gap:10px; margin:10px 0; font-size:14px; }
-      .bar-track { height:12px; background:#fff0e9; border-radius:999px; overflow:hidden; }
-      .bar-fill { height:100%; background:linear-gradient(90deg,#e0704e,#c4512f); border-radius:999px; }
-      table { width:100%; border-collapse:collapse; font-size:13px; }
-      th, td { text-align:left; padding:10px 8px; border-bottom:1px solid #f3ded6; vertical-align:top; }
-      th { color:var(--muted); font-weight:800; }
-      .badge { display:inline-block; border-radius:999px; padding:4px 8px; background:#fff0e9; color:#8f3d24; font-size:12px; font-weight:800; margin:2px; }
+      .bar {
+        display:grid; grid-template-columns:minmax(76px,34%) 1fr auto; align-items:center; gap:9px;
+        margin:11px 0; font-size:13px;
+      }
+      .bar-track { height:12px; background:var(--soft); border-radius:999px; overflow:hidden; }
+      .bar-fill { height:100%; background:linear-gradient(90deg,var(--brand2),var(--brand)); border-radius:999px; }
+      .badge {
+        display:inline-flex; align-items:center; max-width:100%; border-radius:999px; padding:4px 8px;
+        background:var(--soft); color:#8f3d24; font-size:12px; font-weight:850; margin:2px; vertical-align:middle;
+      }
       .privacy { border-color:#b7e4cc; background:#f0fff6; }
       .privacy strong { color:var(--ok); }
       .warn { color:var(--warn); }
-      .empty { color:var(--muted); padding:16px; border:1px dashed var(--line); border-radius:14px; }
-      @media (max-width: 960px) { .kpis, .two, .three { grid-template-columns:1fr; } }
+      .empty { color:var(--muted); padding:16px; border:1px dashed var(--line); border-radius:16px; background:#fffdfb; }
+      .activity-list { display:grid; gap:12px; margin-top:14px; }
+      .activity-card { border:1px solid #f3ded6; border-radius:18px; padding:14px; background:#fffdfb; }
+      .activity-top { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:10px; }
+      .activity-time { color:var(--muted); font-size:12px; text-align:right; white-space:nowrap; }
+      .activity-grid { display:grid; gap:8px; }
+      .kv { display:grid; grid-template-columns:82px 1fr; gap:8px; font-size:13px; line-height:1.45; }
+      .kv b { color:var(--muted); }
+      .safe { color:var(--ok); font-weight:900; }
+      .mobile-bottom {
+        position:fixed; left:0; right:0; bottom:0; z-index:6; display:none; gap:10px; align-items:center;
+        padding:10px 16px calc(10px + env(safe-area-inset-bottom)); background:rgba(255,255,255,.94);
+        border-top:1px solid var(--line); backdrop-filter:blur(14px);
+      }
+      .mobile-bottom button { width:100%; }
+      @media (min-width: 720px) {
+        header { padding:32px 24px 18px; }
+        main { padding:0 24px 48px; }
+        .toolbar { display:flex; flex-wrap:wrap; }
+        .updated { grid-column:auto; }
+        .kpis { grid-template-columns:repeat(3,minmax(0,1fr)); }
+        .activity-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      }
+      @media (min-width: 1040px) {
+        .kpis { grid-template-columns:repeat(6,minmax(0,1fr)); }
+        .two { grid-template-columns:1.1fr .9fr; }
+        .three { grid-template-columns:repeat(3,minmax(0,1fr)); }
+      }
+      @media (max-width: 560px) {
+        header { padding-left:14px; padding-right:14px; }
+        main { padding-left:14px; padding-right:14px; }
+        .card { border-radius:20px; padding:14px; }
+        .toolbar button { display:none; }
+        .toolbar { grid-template-columns:1fr; }
+        .mobile-bottom { display:flex; }
+        .kpis { gap:10px; }
+        .kpi { min-height:104px; }
+        .bar { grid-template-columns:1fr auto; gap:8px; }
+        .bar-track { grid-column:1 / -1; order:3; }
+        .kv { grid-template-columns:74px 1fr; }
+      }
     </style>
   </head>
   <body>
-    <header>
-      <h1>메디테라피 스킨 코치 오너 대시보드</h1>
-      <p class="muted">플러그인 질문·답변 생성·루틴 일정 사용·체크인 활동을 개인정보 없이 집계합니다. 원문 질문/답변, 이름, 연락처, 주소, 주문/결제 정보는 저장하지 않습니다.</p>
-      <div class="toolbar">
-        <select id="range">
-          <option value="24h">최근 24시간</option>
-          <option value="7d" selected>최근 7일</option>
-          <option value="all">전체</option>
-        </select>
-        <button id="refresh">새로고침</button>
-        <span class="muted" id="updated">불러오는 중...</span>
-      </div>
-    </header>
+    <div class="hero">
+      <header>
+        <h1>메디테라피 스킨 코치 오너 대시보드</h1>
+        <p class="muted">플러그인 질문·답변 생성·루틴 일정 사용·체크인 활동을 개인정보 없이 집계합니다. 원문 질문/답변, 이름, 연락처, 주소, 주문/결제 정보는 저장하지 않습니다.</p>
+        <div class="toolbar">
+          <select id="range" aria-label="조회 기간">
+            <option value="24h">최근 24시간</option>
+            <option value="7d" selected>최근 7일</option>
+            <option value="all">전체</option>
+          </select>
+          <button id="refresh">새로고침</button>
+          <span class="muted updated" id="updated">불러오는 중...</span>
+        </div>
+      </header>
+    </div>
 
     <main class="grid">
-      <section class="grid kpis" id="kpis"></section>
+      <section class="grid kpis" id="kpis" aria-label="핵심 지표"></section>
 
       <section class="card privacy">
         <h2>개인정보 보호 상태</h2>
@@ -80,11 +148,15 @@
       </section>
 
       <section class="card">
-        <h2>최근 익명 활동 로그</h2>
-        <div class="muted">원문 질문/답변과 사용자 식별자는 노출하지 않습니다. 피부고민 bucket, 루틴 ID, 제품 family key, 체크인 수치만 표시합니다.</div>
+        <h2>최근 익명 활동</h2>
+        <div class="muted">모바일에서 바로 읽히도록 카드형 로그로 표시합니다. 원문 질문/답변과 사용자 식별자는 저장·노출하지 않습니다.</div>
         <div id="activity"></div>
       </section>
     </main>
+
+    <div class="mobile-bottom">
+      <button id="refreshMobile">새로고침</button>
+    </div>
 
     <script>
       const $ = (id) => document.getElementById(id);
@@ -103,17 +175,15 @@
           ['질문', f.questions || 0, 'plugin_question'],
           ['답변 생성', f.answers || 0, `응답률 ${fmtPct(f.answerRate)}`],
           ['루틴 추천', f.recommendations || 0, 'routine_recommendation'],
-          ['루틴 일정 사용', f.schedules || 0, `전환율 ${fmtPct(f.scheduleRate)}`],
+          ['루틴 일정', f.schedules || 0, `전환율 ${fmtPct(f.scheduleRate)}`],
           ['체크인', f.checkins || 0, `체크인율 ${fmtPct(f.checkinRate)}`],
-          ['평균 만족도', fmtNum(d.avgSatisfaction || 0), '1~5점']
+          ['만족도', fmtNum(d.avgSatisfaction || 0), '1~5점']
         ];
-        $('kpis').innerHTML = cards.map(([label,value,sub]) => `<div class="card kpi"><div class="label">${label}</div><div class="value">${value}</div><div class="sub">${sub}</div></div>`).join('');
+        $('kpis').innerHTML = cards.map(([label,value,sub]) => `<div class="card kpi"><div class="label">${label}</div><div><div class="value">${value}</div><div class="sub">${sub}</div></div></div>`).join('');
       }
       function renderFunnel(d) {
         const f = d.funnel || {};
-        const rows = [
-          ['질문', f.questions || 0], ['답변 생성', f.answers || 0], ['루틴 추천', f.recommendations || 0], ['루틴 일정 사용', f.schedules || 0], ['체크인', f.checkins || 0], ['Day7 체크인', f.day7 || 0]
-        ];
+        const rows = [['질문', f.questions || 0], ['답변 생성', f.answers || 0], ['루틴 추천', f.recommendations || 0], ['루틴 일정 사용', f.schedules || 0], ['체크인', f.checkins || 0], ['Day7 체크인', f.day7 || 0]];
         const max = Math.max(...rows.map(r => r[1]), 1);
         $('funnel').innerHTML = rows.map(([label,count]) => `<div class="bar"><div>${label}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.max(5, count/max*100)}%"></div></div><strong>${count}</strong></div>`).join('');
       }
@@ -124,7 +194,21 @@
       function renderActivity(d) {
         const rows = d.recentActivity || [];
         if (!rows.length) { $('activity').innerHTML = '<div class="empty">최근 활동이 없습니다.</div>'; return; }
-        $('activity').innerHTML = `<table><thead><tr><th>시간</th><th>활동</th><th>피부고민/타입</th><th>루틴/제품</th><th>체크인</th><th>개인정보</th></tr></thead><tbody>${rows.map(r => `<tr><td>${esc((r.occurredAt || '').slice(0,19).replace('T',' '))}</td><td><span class="badge">${esc(r.eventType)}</span></td><td>${chips(r.concerns)}<br><span class="muted">${esc(r.skinType || '-')}</span></td><td><strong>${esc(r.routineId || '-')}</strong><br>${chips(r.productIds)}</td><td>${r.checkinDay ? `Day ${esc(r.checkinDay)}` : '-'} ${r.satisfactionScore ? `<br>만족도 ${esc(r.satisfactionScore)}` : ''}</td><td><strong style="color:var(--ok)">${r.rawTextStored ? '점검필요' : '원문 미저장'}</strong><br><span class="muted">${esc(r.privacy)}</span></td></tr>`).join('')}</tbody></table>`;
+        $('activity').innerHTML = `<div class="activity-list">${rows.map(r => `
+          <article class="activity-card">
+            <div class="activity-top">
+              <span class="badge">${esc(r.eventType)}</span>
+              <span class="activity-time">${esc((r.occurredAt || '').slice(0,16).replace('T',' '))}</span>
+            </div>
+            <div class="activity-grid">
+              <div class="kv"><b>피부고민</b><span>${chips(r.concerns)}</span></div>
+              <div class="kv"><b>피부타입</b><span>${esc(r.skinType || '-')}</span></div>
+              <div class="kv"><b>루틴</b><span>${esc(r.routineId || '-')}</span></div>
+              <div class="kv"><b>제품</b><span>${chips(r.productIds)}</span></div>
+              <div class="kv"><b>체크인</b><span>${r.checkinDay ? `Day ${esc(r.checkinDay)}` : '-'} ${r.satisfactionScore ? ` · 만족도 ${esc(r.satisfactionScore)}` : ''}</span></div>
+              <div class="kv"><b>개인정보</b><span class="safe">${r.rawTextStored ? '점검필요' : '원문 미저장'}</span></div>
+            </div>
+          </article>`).join('')}</div>`;
       }
       async function load() {
         $('updated').textContent = '불러오는 중...';
@@ -141,6 +225,7 @@
         $('updated').textContent = `업데이트: ${new Date(d.generatedAt || Date.now()).toLocaleString('ko-KR')}`;
       }
       $('refresh').addEventListener('click', load);
+      $('refreshMobile').addEventListener('click', load);
       $('range').addEventListener('change', load);
       load().catch(err => { $('updated').textContent = '불러오기 실패'; console.error(err); });
     </script>
