@@ -95,6 +95,25 @@ paths:
                             type: string
                         exampleUrl:
                           type: string
+                  gptTodoPlan:
+                    type: array
+                    description: ChatGPT의 native Tasks/할일 도구가 사용 가능한 환경에서 그대로 할일로 만들 수 있는 구조화 일정
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        title:
+                          type: string
+                        dueInDays:
+                          type: number
+                        checklist:
+                          type: array
+                          items:
+                            type: string
+                  todoIntegrationStatus:
+                    type: string
+                    description: ChatGPT native Tasks 도구 사용 가능 시 할일 생성 준비 상태
                   morning:
                     type: array
                     items:

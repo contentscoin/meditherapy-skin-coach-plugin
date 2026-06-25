@@ -129,6 +129,31 @@ function mergedSafetyRules(products: RankedProduct[], sensitivity: string) {
   return [...rules].slice(0, 8);
 }
 
+function buildGptTodoPlan(routineId: string, products: RankedProduct[], sensitivity: string) {
+  const firstProduct = products[0]?.name ?? "메디테라피 추천 루틴";
+  const highSensitivity = isHighSensitivity(sensitivity);
+  return [
+    {
+      id: `${routineId}-day-1-patch-test`,
+      title: `Day 1: ${firstProduct} 패치테스트 및 첫 사용 기록`,
+      dueInDays: 1,
+      checklist: ["팔 안쪽 또는 턱 라인에 소량 테스트", "따가움/붉음/건조함 0~5점 기록", highSensitivity ? "얼굴 전체 사용은 내일 이후로 보류" : "문제 없으면 저녁 루틴에 소량 사용"],
+    },
+    {
+      id: `${routineId}-day-3-irritation-check`,
+      title: "Day 3: 자극/트러블/건조함 체크",
+      dueInDays: 3,
+      checklist: ["피부결·붉음·트러블 변화 확인", "자극 점수 3 이상이면 기능성 성분 빈도 줄이기", "불편하면 진정/장벽 루틴으로 전환"],
+    },
+    {
+      id: `${routineId}-day-7-result-review`,
+      title: "Day 7: 화장 밀착/피부결/만족도 리뷰",
+      dueInDays: 7,
+      checklist: ["화장 밀착도와 피부결 변화 평가", "만족도 1~5점 기록", "계속 사용/빈도 조정/루틴 변경 중 선택"],
+    },
+  ];
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   cors(res);
   if (req.method === "OPTIONS") return res.status(200).end();
@@ -167,6 +192,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       { day: 3, check: "피부결, 붉음, 트러블 변화 체크" },
       { day: 7, check: "화장 밀착, 피부결, 만족도 평가" },
     ],
+    gptTodoPlan: buildGptTodoPlan(routineId, rankedProducts, sensitivity),
+    todoIntegrationStatus: "ready_for_chatgpt_tasks_when_native_tasks_tool_is_available",
     safetyRules: mergedSafetyRules(rankedProducts, sensitivity),
     ontology: {
       version: ontologyBuild.version,
