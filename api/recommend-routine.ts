@@ -1,6 +1,8 @@
 import { anonHash, cleanArray, cleanText, cors, parseBody, rateLimit, recordSkinCoachEvent, VercelRequest, VercelResponse } from "./_shared.js";
 import { ontologyBuild, productFamilies, ProductFamily } from "./product-ontology-v2.js";
 
+const APP_BASE_URL = "https://meditherapy-skin-coach-dashboard.vercel.app";
+
 type RequestBody = {
   skinType?: string;
   concerns?: string[];
@@ -37,6 +39,21 @@ function targetConcerns(concerns: string[]) {
   }
   if (targets.size === 0) targets.add("general_skincare");
   return targets;
+}
+
+function unknownConcernBuckets(concerns: string[]) {
+  return concerns
+    .map((concern) => cleanText(concern, ""))
+    .filter(Boolean)
+    .filter((concern) => !Object.values(concernAliases).some((aliases) => aliases.some((alias) => normalize(concern).includes(normalize(alias)))) )
+    .slice(0, 5);
+}
+
+function trackingUrl(product: RankedProduct, routineId: string) {
+  const target = encodeURIComponent(product.exampleUrl ?? "");
+  const productId = encodeURIComponent(product.familyKey);
+  const routine = encodeURIComponent(routineId);
+  return `${APP_BASE_URL}/api/product-click?productId=${productId}&routineId=${routine}&target=${target}`;
 }
 
 function isHighSensitivity(sensitivity: string) {
@@ -154,16 +171,17 @@ function buildGptTodoPlan(routineId: string, products: RankedProduct[], sensitiv
   ];
 }
 
-function buildProductLinks(products: RankedProduct[]) {
+function buildProductLinks(products: RankedProduct[], routineId: string) {
   return products.map((product) => ({
     name: product.name,
     url: product.exampleUrl ?? null,
+    trackingUrl: trackingUrl(product, routineId),
   }));
 }
 
-function buildModelAnswerMarkdown(summary: string, products: RankedProduct[], safetyRules: string[]) {
+function buildModelAnswerMarkdown(summary: string, products: RankedProduct[], safetyRules: string[], routineId: string) {
   const productLines = products
-    .map((product, index) => `${index + 1}. [${product.name}](${product.exampleUrl ?? "#"})`)
+    .map((product, index) => `${index + 1}. [${product.name}](${trackingUrl(product, routineId)})`)
     .join("\n");
   return [
     "안녕하세요, 메디테라피입니다.",
@@ -195,7 +213,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const routineId = buildRoutineId(sensitivity, goalSpeed, rankedProducts);
   const summary = `${skinType} 피부의 ${concerns.join(", ") || "기본 피부결"} 고민을 위한 ${goalSpeed} 온톨로지 기반 루틴입니다.`;
   const safetyRules = mergedSafetyRules(rankedProducts, sensitivity);
-  const productLinks = buildProductLinks(rankedProducts);
+  const productLinks = buildProductLinks(rankedProducts, routineId);
+  const ontologyGaps = unknownConcernBuckets(concerns);
 
   const result = {
     pluginName: "메디테라피 스킨 코치",
@@ -205,7 +224,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       "추천 제품은 recommendedProductDetails 또는 productLinks의 URL을 사용해 제품별 링크를 하나씩 모두 표시합니다.",
       "제품명만 나열하지 말고 각 제품마다 클릭 가능한 링크를 붙입니다."
     ],
-    modelAnswerMarkdown: buildModelAnswerMarkdown(summary, rankedProducts, safetyRules),
+    modelAnswerMarkdown: buildModelAnswerMarkdown(summary, rankedProducts, safetyRules, routineId),
+    feedbackActions: [
+      { label: "도움됨", eventType: "product_feedback", action: "helpful" },
+      { label: "제품이 안 맞음", eventType: "product_feedback", action: "product_mismatch" },
+      { label: "자극 있음", eventType: "product_feedback", action: "irritation_signal" },
+      { label: "일정으로 쓰고 싶음", eventType: "task_schedule_created", action: "todo_plan_used" }
+    ],
+    ontologyGaps,
     routineId,
     summary,
     recommendedProducts,
@@ -245,7 +271,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   };
 
   if (body.consentForAnalytics !== false) {
-    await Promise.allSettled([
+    const analyticsEvents = [
       recordSkinCoachEvent({
         eventType: "routine_recommendation",
         userHash: anonHash({ skinType, concerns, locale }),
@@ -269,7 +295,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           answer_text_stored: false,
         },
       }),
-    ]);
+    ];
+    if (ontologyGaps.length) {
+      analyticsEvents.push(recordSkinCoachEvent({
+        eventType: "ontology_gap",
+        userHash: anonHash({ skinType, concerns, locale, gap: true }),
+        skinType,
+        concerns,
+        sensitivity,
+        routineId,
+        productIds: rankedProducts.map((product) => product.familyKey),
+        localeBucket: locale,
+        ontologyGapFields: ontologyGaps,
+        metadata: { source: "plugin_api", privacy: "sanitized_no_pii", raw_text_stored: false, gapReason: "unmapped_concern_bucket" },
+      }));
+    }
+    await Promise.allSettled(analyticsEvents);
     result.analyticsSaved = true;
   }
 

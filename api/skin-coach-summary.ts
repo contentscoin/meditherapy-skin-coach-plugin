@@ -43,6 +43,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const funnel = base.funnel ?? {};
   const recommendations = funnel.recommendations ?? base.eventCounts?.routine_recommendation ?? 0;
   const schedules = funnel.schedules ?? base.eventCounts?.task_schedule_created ?? 0;
+  const recentEvents = (recent as AnyEvent[]) ?? [];
+  const productShown = funnel.productShown ?? recommendations;
+  const productClicks = funnel.productClicks ?? recentEvents.filter((event) => event.eventType === "product_feedback" && event.action === "product_link_clicked").length;
+  const feedback = funnel.feedback ?? (base.eventCounts?.product_feedback ?? 0);
   const checkins = funnel.checkins ?? base.eventCounts?.checkin ?? 0;
   const questions = funnel.questions ?? recommendations;
   const answers = funnel.answers ?? recommendations;
@@ -55,12 +59,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       answers,
       recommendations,
       schedules,
+      productShown,
+      productClicks,
+      feedback,
       checkins,
       answerRate: questions ? answers / questions : 0,
       scheduleRate: recommendations ? schedules / recommendations : 0,
+      productClickRate: productShown ? productClicks / productShown : 0,
+      feedbackRate: recommendations ? feedback / recommendations : 0,
       checkinRate: recommendations ? checkins / recommendations : 0,
     },
-    recentActivity: sanitizeRecent((recent as AnyEvent[]) ?? []),
+    recentActivity: sanitizeRecent(recentEvents),
     privacyGuard: {
       rawTextStored: false,
       piiStored: false,
@@ -69,6 +78,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     },
     insights: [
       { type: "plugin", summary: `플러그인 질문/답변 활동 ${recommendations}건입니다. 원문 질문과 답변 전문은 저장하지 않습니다.` },
+      { type: "commerce", summary: `추천 제품 노출 ${productShown}건, 제품 링크 클릭 ${productClicks}건입니다.` },
+      { type: "feedback", summary: `추천/제품 피드백 ${feedback}건입니다.` },
       ...(Array.isArray(base.insights) ? base.insights : []),
     ],
   });

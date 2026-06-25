@@ -83,6 +83,9 @@ paths:
                           type: string
                         url:
                           type: string
+                        trackingUrl:
+                          type: string
+                          description: 클릭 시 익명 product_link_clicked 이벤트를 저장한 뒤 실제 제품 URL로 이동하는 추적 링크
                   recommendedProductDetails:
                     type: array
                     description: CrabAgent V2 온톨로지 기반 추천 근거와 점수
@@ -264,3 +267,38 @@ paths:
                       type: object
                   ontologyGaps:
                     type: object
+  /api/product-click:
+    get:
+      operationId: trackProductClick
+      summary: 추천 제품 링크 클릭을 product_feedback/action=product_link_clicked로 익명 기록 후 실제 제품 페이지로 이동
+      parameters:
+        - name: productId
+          in: query
+          schema: { type: string }
+        - name: routineId
+          in: query
+          schema: { type: string }
+        - name: target
+          in: query
+          schema: { type: string }
+      responses:
+        "302":
+          description: 실제 메디테라피 제품 페이지로 리다이렉트
+  /api/export-analytics:
+    get:
+      operationId: exportOwnerAnalytics
+      summary: 개인정보 없는 집계 분석 데이터 내보내기
+      parameters:
+        - name: range
+          in: query
+          schema:
+            type: string
+            enum: [all, 7d, 24h]
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [json, csv]
+      responses:
+        "200":
+          description: 원문/사용자해시 없는 집계 데이터
