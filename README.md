@@ -1,125 +1,168 @@
 # 메디테라피 스킨 코치 플러그인
 
-**메디테라피 스킨 코치**는 고객의 피부고민을 제품 추천에서 끝내지 않고, 개인 루틴 추천 → GPT 할 일/체크인 관리 → 익명 사용 데이터 저장 → OpenCrab 온톨로지팩 개선 신호로 연결하는 K-뷰티 AI 코치 플러그인입니다.
+**메디테라피 스킨 코치**는 피부고민을 입력하면 메디테라피 제품 온톨로지 기반으로 루틴을 추천하고, GPT 할일/체크인 계획과 개인정보 없는 활동 분석까지 연결하는 **ChatGPT Apps SDK / MCP 기반 K-뷰티 AI 코치 앱**입니다.
 
-이 repo는 ChatGPT Apps SDK / MCP 연결을 위한 **MCP endpoint, 앱 UI resource, 제품 추천 API, OpenAPI 보조 스펙, plugin manifest 보조 파일, Convex DB schema/functions**를 담고 있습니다.
-
-등록 매뉴얼: [`docs/CHATGPT_APPS_REGISTRATION.md`](docs/CHATGPT_APPS_REGISTRATION.md)
-
-현재 추천 API는 **CrabAgent V2 제품 온톨로지팩**을 로컬 경량 인덱스로 사용합니다. 제품 223개를 86개 제품 패밀리로 정리하고, 피부고민·성분 cue·루틴 역할·안전룰·추천 근거를 기준으로 reranking합니다.
+> 핵심: **추천 → 루틴 일정 → 체크인 → 익명 활동 데이터 → 제품/루틴 개선**까지 한 번에 연결합니다.
 
 ---
 
-## 1. 한 줄 정의
-
-> 고객의 피부타입, 피부고민, 민감도, 예산, 목표 속도를 바탕으로 메디테라피 제품 루틴을 추천하고, 사용 체크인 데이터를 개인정보 없이 익명화해 제품/루틴 온톨로지 개선에 활용하는 AI 스킨케어 코치 플러그인.
-
----
-
-## 2. 배포 주소
+## 바로 확인하기
 
 | 항목 | URL |
 |---|---|
 | MCP Endpoint | https://meditherapy-skin-coach-dashboard.vercel.app/api/mcp |
+| 오너 대시보드 | https://meditherapy-skin-coach-dashboard.vercel.app/owner-dashboard.html |
+| 서비스 홈 | https://meditherapy-skin-coach-dashboard.vercel.app |
+| OpenAPI | https://meditherapy-skin-coach-dashboard.vercel.app/openapi.yaml |
 | Plugin Manifest | https://meditherapy-skin-coach-dashboard.vercel.app/.well-known/ai-plugin.json |
-| OpenAPI Spec | https://meditherapy-skin-coach-dashboard.vercel.app/openapi.yaml |
 | API Catalog | https://meditherapy-skin-coach-dashboard.vercel.app/.well-known/api-catalog |
-| Privacy Policy | https://meditherapy-skin-coach-dashboard.vercel.app/privacy.html |
-| Owner Dashboard | https://meditherapy-skin-coach-dashboard.vercel.app/owner-dashboard.html |
-| Dashboard | https://meditherapy-skin-coach-dashboard.vercel.app |
-| GitHub Plugin Repo | https://github.com/contentscoin/meditherapy-skin-coach-plugin |
+| Privacy | https://meditherapy-skin-coach-dashboard.vercel.app/privacy.html |
+| ChatGPT 앱 등록 매뉴얼 | [docs/CHATGPT_APPS_REGISTRATION.md](docs/CHATGPT_APPS_REGISTRATION.md) |
 
 ---
 
-## 3. 핵심 사용자 시나리오
+## 현재 구현 상태
 
-### 3.1 고객 루틴 추천
-
-고객이 다음 정보를 입력합니다.
-
-| 입력값 | 예시 |
+| 영역 | 상태 |
 |---|---|
-| 피부타입 | 복합성, 민감성, 건성, 지성 |
-| 피부고민 | 피부결, 모공, 트러블, 붉음, 잡티, 화장밀림 |
-| 민감도 | low, medium, high |
-| 예산 | 5만원 이하 |
-| 목표 속도 | 7일, 14일, 30일 |
-| 언어/국가 | ko-KR, en-US 등 |
-| 익명 분석 동의 | true/false |
+| ChatGPT Apps SDK / MCP | `/api/mcp` 연결 가능 |
+| 제품 추천 API | CrabAgent V2 제품 온톨로지 기반 추천 |
+| 제품 링크 | 추천 제품마다 실제 제품 링크 + 클릭 추적 링크 제공 |
+| GPT 할일 계획 | Day 1 / Day 3 / Day 7 체크인 계획 제공 |
+| 오너 대시보드 | 질문/답변, 추천, 일정 사용, 제품 클릭, 피드백, 체크인 집계 |
+| 데이터 저장 | Convex에 개인정보 없는 구조화 이벤트 저장 |
+| CSV Export | 개인정보 없는 집계 데이터 다운로드 가능 |
+| 배포 | Vercel Production 배포 완료 |
 
-플러그인은 다음을 반환합니다.
+---
 
-- 추천 루틴 ID
-- 추천 제품 목록
-- 아침 루틴
-- 저녁 루틴
-- Day 1 / Day 3 / Day 7 체크인 항목
-- 민감피부 안전 룰
-- 익명 분석 저장 여부
+## 핵심 기능
 
-### 3.2 GPT 할 일/체크인 관리
+1. **피부고민 기반 루틴 추천**
+   - 피부타입, 피부고민, 민감도, 목표 속도를 입력받아 제품 루틴 추천
+   - 제품 223개 → 제품 패밀리 86개로 정리한 온톨로지 기반 reranking
 
-추천 결과를 기반으로 GPT가 다음 형태의 할 일을 만들 수 있습니다.
+2. **제품 링크 제공 및 클릭 관심도 분석**
+   - 추천 제품마다 실제 메디테라피 제품 링크 제공
+   - `trackingUrl`을 통해 익명 클릭 이벤트 저장 후 실제 제품 페이지로 이동
+
+3. **GPT 할일/루틴 일정 계획**
+   - Day 1 패치테스트
+   - Day 3 자극/트러블/건조 체크
+   - Day 7 만족도/피부결/화장밀착 리뷰
+
+4. **오너 대시보드**
+   - 질문/답변 활동
+   - 루틴 추천 수
+   - 제품 노출/클릭
+   - 루틴 일정 사용
+   - 추천 품질 피드백
+   - 체크인/만족도/자극 신호
+   - 온톨로지 갭
+
+5. **개인정보 없는 데이터 수집**
+   - 원문 질문/답변, 이름, 연락처, 주소, 주문/결제정보 저장 안 함
+   - 피부고민 bucket, 루틴 ID, 제품 family key, 점수, 액션만 저장
+
+---
+
+## 사용 흐름
 
 ```text
-Day 1
-- 패치테스트
-- 따가움/건조함 기록
-
-Day 3
-- 피부결, 붉음, 트러블 변화 체크
-- 자극 점수 3 이상이면 기능성 성분 빈도 줄이기
-
-Day 7
-- 화장 밀착, 피부결, 만족도 평가
-- 계속 사용 / 빈도 조정 / 진정 루틴 전환 판단
-```
-
-### 3.3 익명 사용 데이터 저장
-
-사용자가 동의한 경우에만 다음과 같은 구조화 이벤트를 저장합니다.
-
-```json
-{
-  "eventType": "checkin",
-  "userHash": "anon_74e0ed81",
-  "skinType": "복합성",
-  "concerns": ["피부결"],
-  "routineId": "glass-skin-7day",
-  "productIds": ["egg-skin-kit"],
-  "checkinDay": 7,
-  "drynessScore": 1,
-  "irritationScore": 0,
-  "satisfactionScore": 4.8,
-  "action": "continue",
-  "localeBucket": "ko-KR",
-  "metadata": {
-    "source": "plugin_api",
-    "privacy": "sanitized_no_pii",
-    "raw_text_stored": false
-  }
-}
+사용자 피부고민 입력
+  ↓
+MCP tool recommend_skin_routine 호출
+  ↓
+제품 온톨로지 V2 기반 루틴 추천
+  ↓
+제품 링크 + GPT 할일 계획 반환
+  ↓
+사용자가 제품 클릭/일정 사용/체크인/피드백
+  ↓
+개인정보 없는 이벤트로 저장
+  ↓
+오너 대시보드에서 분석
 ```
 
 ---
 
-## 4. API 개요
+## 주요 API
 
 | Method | Path | 기능 |
 |---|---|---|
-| POST | `/api/recommend-routine` | 피부타입/고민/민감도 기반 루틴 추천 |
-| POST | `/api/record-event` | 개인정보 제외 익명 체크인/사용 이벤트 저장 |
-| GET | `/api/skin-coach-summary` | Convex DB 기반 요약 조회 |
+| POST | `/api/recommend-routine` | 피부고민 기반 루틴 추천 |
+| POST | `/api/record-event` | 체크인/일정/피드백 등 익명 이벤트 저장 |
+| GET | `/api/product-click` | 제품 클릭 익명 추적 후 실제 제품 페이지로 이동 |
+| GET | `/api/skin-coach-summary` | 오너 대시보드 집계 조회 |
+| GET | `/api/export-analytics` | 개인정보 없는 집계 CSV/JSON export |
+| POST | `/api/mcp` | ChatGPT Apps SDK / MCP endpoint |
 
 ---
 
-## 5. API 상세
+## 개인정보 원칙
 
-### 5.1 `POST /api/recommend-routine`
+### 저장하지 않음
 
-피부고민 기반으로 루틴과 추천 제품을 반환합니다.
+- 이름, 전화번호, 이메일, 주소
+- 주문번호, 결제정보, 장바구니 정보
+- ChatGPT 계정 정보
+- 원문 질문/답변 전체
+- 자유서술 원문 전체
+- 사진 원본
 
-#### Request
+### 저장 가능
+
+- 피부고민 category/bucket
+- 피부타입, 민감도
+- 루틴 ID
+- 제품 family key
+- 체크인 일차
+- 건조/자극/만족도 점수
+- `helpful`, `product_mismatch`, `irritation_signal`, `product_link_clicked` 같은 구조화 action
+- `metadata.raw_text_stored = false`
+
+---
+
+## 빠른 검증
+
+```bash
+# Build
+npm run build
+
+# 추천 API
+curl -X POST https://meditherapy-skin-coach-dashboard.vercel.app/api/recommend-routine \
+  -H 'Content-Type: application/json' \
+  --data '{"skinType":"복합성","concerns":["피부결","모공"],"sensitivity":"medium","goalSpeed":"7일","locale":"ko-KR","consentForAnalytics":true}'
+
+# 오너 대시보드 요약
+curl 'https://meditherapy-skin-coach-dashboard.vercel.app/api/skin-coach-summary?range=all'
+
+# CSV Export
+curl 'https://meditherapy-skin-coach-dashboard.vercel.app/api/export-analytics?range=all&format=csv'
+```
+
+---
+
+# 상세 내용
+
+## 1. 추천 API 응답 핵심 필드
+
+`POST /api/recommend-routine`는 다음 주요 필드를 반환합니다.
+
+| 필드 | 설명 |
+|---|---|
+| `brandGreeting` | `안녕하세요, 메디테라피입니다.` 고정 인사 |
+| `modelAnswerMarkdown` | ChatGPT가 바로 사용할 수 있는 답변 초안 |
+| `routineId` | 추천 루틴 ID |
+| `recommendedProducts` | 추천 제품명 배열 |
+| `productLinks` | 실제 제품 URL + 클릭 추적 URL |
+| `recommendedProductDetails` | 점수, 근거, 성분 cue, 제품 family key |
+| `gptTodoPlan` | GPT 할일로 변환 가능한 Day 1/3/7 계획 |
+| `feedbackActions` | 도움됨/자극/제품불일치/일정사용 액션 |
+| `ontologyGaps` | 온톨로지에 없는 피부고민 bucket |
+| `analyticsSaved` | 익명 분석 이벤트 저장 여부 |
+
+### 예시 요청
 
 ```json
 {
@@ -133,278 +176,147 @@ Day 7
 }
 ```
 
-#### Response
-
-```json
-{
-  "pluginName": "메디테라피 스킨 코치",
-  "routineId": "sensitive-calming-14day",
-  "summary": "민감성 피부의 트러블, 붉음 고민을 위한 14일 루틴입니다.",
-  "recommendedProducts": [
-    "PDRN 스킨부스터 세럼",
-    "진정 크림",
-    "패치테스트",
-    "저자극 진정 루틴"
-  ],
-  "morning": ["저자극 세안", "수분 세럼", "보습/블러 크림", "자외선 차단"],
-  "night": ["저자극 세안", "진정 세럼", "보습 크림"],
-  "timeline": [
-    { "day": 1, "check": "패치테스트, 따가움/건조함 기록" },
-    { "day": 3, "check": "피부결, 붉음, 트러블 변화 체크" },
-    { "day": 7, "check": "화장 밀착, 피부결, 만족도 평가" }
-  ],
-  "safetyRules": [
-    "자극 점수 3 이상이면 기능성 성분 빈도 줄이기",
-    "새 트러블이 늘면 진정 루틴으로 전환",
-    "민감피부는 레티날/AHA/BHA 동시 사용 금지"
-  ],
-  "analyticsSaved": true
-}
-```
-
 ---
 
-### 5.2 `POST /api/record-event`
+## 2. 이벤트 모델
 
-루틴 수행, 체크인, 제품 반응, 온톨로지 갭 이벤트를 익명으로 저장합니다.
-
-#### Request
-
-```json
-{
-  "eventType": "checkin",
-  "skinType": "복합성",
-  "concerns": ["피부결"],
-  "routineId": "glass-skin-7day",
-  "productIds": ["egg-skin-kit"],
-  "checkinDay": 7,
-  "drynessScore": 1,
-  "irritationScore": 0,
-  "satisfactionScore": 4.8,
-  "action": "continue",
-  "locale": "ko-KR"
-}
-```
-
-#### Response
-
-```json
-{
-  "ok": true,
-  "id": "j5701tgcsnbgqbgten2ff9ydvn89bcqv",
-  "saved": {
-    "eventType": "checkin",
-    "userHash": "anon_74e0ed81",
-    "metadata": {
-      "privacy": "sanitized_no_pii",
-      "raw_text_stored": false
-    }
-  }
-}
-```
-
----
-
-### 5.3 `GET /api/skin-coach-summary`
-
-Convex DB에 저장된 익명 이벤트를 집계합니다.
-
-#### Query Params
-
-| Parameter | 값 |
-|---|---|
-| `range` | `all`, `7d`, `24h` |
-
-#### Example
-
-```bash
-curl "https://meditherapy-skin-coach-dashboard.vercel.app/api/skin-coach-summary?range=all"
-```
-
-#### Response 주요 필드
-
-```json
-{
-  "totalEvents": 9,
-  "avgSatisfaction": 4.31,
-  "funnel": {
-    "recommendations": 3,
-    "schedules": 1,
-    "checkins": 3,
-    "day7": 2,
-    "day7CompletionRate": 0.66
-  },
-  "topConcerns": [
-    { "value": "피부결", "count": 4 }
-  ],
-  "ontologyGaps": {
-    "count": 1,
-    "fields": [
-      { "value": "finish_tags", "count": 1 }
-    ]
-  }
-}
-```
-
----
-
-## 6. Convex 데이터 모델
-
-테이블: `skinCoachEvents`
+Convex 테이블: `skinCoachEvents`
 
 | Field | 설명 |
 |---|---|
 | `eventId` | 이벤트 ID |
-| `eventType` | 추천/체크인/제품피드백/온톨로지갭 등 |
+| `eventType` | `routine_recommendation`, `task_schedule_created`, `checkin`, `product_feedback`, `ontology_gap` 등 |
 | `occurredAt` | 발생 시각 |
-| `userHash` | 익명 사용자 해시 |
+| `userHash` | 익명 해시. UI에는 노출하지 않음 |
 | `skinType` | 피부타입 |
 | `concerns` | 피부고민 배열 |
 | `sensitivity` | 민감도 |
 | `routineId` | 루틴 ID |
-| `productIds` | 제품 ID 배열 |
+| `productIds` | 제품 family key 배열 |
 | `checkinDay` | 체크인 일차 |
 | `drynessScore` | 건조 점수 |
 | `irritationScore` | 자극 점수 |
 | `satisfactionScore` | 만족도 점수 |
-| `action` | continue, reduce_active, switch_routine 등 |
+| `action` | `continue`, `helpful`, `product_link_clicked` 등 |
 | `localeBucket` | 국가/언어 범주 |
 | `ontologyGapFields` | 보강이 필요한 온톨로지 필드 |
-| `metadata` | source/privacy 등 비식별 메타데이터 |
+| `metadata` | `privacy`, `source`, `raw_text_stored` 등 |
 
 ---
 
-## 7. 개인정보 처리 원칙
+## 3. 오너 대시보드 지표
 
-### 저장하지 않음
+오너 대시보드는 `/api/skin-coach-summary`의 집계값을 사용합니다.
 
-- 이름
-- 전화번호
-- 이메일
-- 주소
-- 주문번호
-- 결제정보
-- 사진 원본
-- 원문 대화 전체
-- 자유서술 원문 전체
-
-### 저장 가능
-
-- 피부고민
-- 피부타입
-- 민감도
-- 루틴 ID
-- 제품 ID
-- 체크인 점수
-- 루틴 변경 사유
-- 국가/언어 범주
-
-### 설계 원칙
-
-1. 사용자가 동의한 경우에만 분석 이벤트 저장
-2. 원문 대화 전체 저장 금지
-3. 구조화된 필드만 저장
-4. 익명 해시 사용
-5. `metadata.raw_text_stored = false`로 원문 미저장 표시
-
----
-
-## 8. OpenCrab 온톨로지팩 연계 방향
-
-이 플러그인은 Convex에 쌓인 익명 이벤트를 다음 OpenCrab 팩 고도화 신호로 사용할 수 있습니다.
-
-| Pack | 활용 데이터 |
+| 지표 | 의미 |
 |---|---|
-| `meditherapy-product-catalog` | 제품별 선택/체크인/만족도 |
-| `meditherapy-ingredient-ontology` | 성분별 자극/만족/중단 신호 |
-| `meditherapy-skin-concern-map` | 피부고민 ↔ 제품 ↔ 루틴 적합도 |
-| `meditherapy-routine-template` | 7일/14일/30일 루틴 완주율 |
-| `meditherapy-customer-usage-patterns` | 익명 사용 패턴, 이탈/완주 신호 |
-| `meditherapy-recommendation-feedback` | 추천 결과와 실제 반응 비교 |
+| 질문 | 플러그인 루틴 추천 요청 수 |
+| 답변 생성 | 추천 API 답변 생성 수 |
+| 루틴 추천 | 추천 이벤트 수 |
+| 제품 노출 | 추천 결과에서 제품 링크가 노출된 수 |
+| 제품 클릭 | 제품 링크 클릭 이벤트 수 |
+| 루틴 일정 사용 | GPT 할일/루틴 일정 사용 이벤트 수 |
+| 피드백 | 도움됨/자극/제품불일치 등 구조화 피드백 |
+| 체크인 | Day별 루틴 체크인 이벤트 |
+| 온톨로지 갭 | 제품/성분/사용법 데이터 보강 필요 신호 |
 
 ---
 
-## 9. 로컬 개발
+## 4. OpenCrab / 제품 온톨로지 연계
+
+현재 추천 API는 CrabAgent V2 제품 온톨로지 기반 로컬 인덱스를 사용합니다.
+
+| 항목 | 값 |
+|---|---|
+| 제품 원본 수 | 223개 |
+| 제품 패밀리 | 86개 |
+| 주요 기준 | 피부고민, 성분 cue, 루틴 역할, 안전룰, 제품 URL |
+| 추천 방식 | `local_crabagent_v2_family_rerank` |
+| 개인정보 포함 | 없음 |
+
+익명 이벤트는 추후 다음 온톨로지 개선에 사용할 수 있습니다.
+
+- 제품별 추천 후 클릭/피드백
+- 피부고민별 루틴 완주율
+- 민감피부 자극 신호
+- 자주 묻지만 제품 데이터에 부족한 항목
+- 제품 상세 설명에서 보강해야 할 사용법/주의사항
+
+---
+
+## 5. 로컬 개발
 
 ```bash
 npm install
-npx convex dev --once
 npm run build
 ```
 
-`.env.local`에 다음 값이 필요합니다.
+Convex 개발/배포가 필요한 경우:
+
+```bash
+npx convex dev
+npx convex deploy
+```
+
+환경변수 예시:
 
 ```bash
 VITE_CONVEX_URL=https://YOUR-CONVEX.convex.cloud
 CONVEX_URL=https://YOUR-CONVEX.convex.cloud
 ```
 
-`.env.local`은 Git에 올리지 않습니다.
+`.env.local`, `.vercel`, `node_modules`, `dist`는 Git에 올리지 않습니다.
 
 ---
 
-## 10. 배포
-
-Vercel에 배포합니다.
+## 6. 배포
 
 ```bash
-npx vercel deploy --prod \
-  --env VITE_CONVEX_URL=https://YOUR-CONVEX.convex.cloud \
-  --env CONVEX_URL=https://YOUR-CONVEX.convex.cloud
+npx vercel deploy --prod --yes
+```
+
+배포 후 확인:
+
+```bash
+curl https://meditherapy-skin-coach-dashboard.vercel.app/owner-dashboard.html
+curl https://meditherapy-skin-coach-dashboard.vercel.app/openapi.yaml
+curl https://meditherapy-skin-coach-dashboard.vercel.app/.well-known/api-catalog
 ```
 
 ---
 
-## 11. 파일 구조
+## 7. 파일 구조
 
 ```text
 api/
-  _shared.ts                 공통 CORS, Convex client, sanitize helper
-  recommend-routine.ts       루틴 추천 API
-  record-event.ts            익명 이벤트 저장 API
-  skin-coach-summary.ts      대시보드 요약 API
+  _shared.ts             공통 CORS, rate limit, Convex client, sanitizer
+  mcp.ts                 ChatGPT Apps SDK / MCP endpoint
+  recommend-routine.ts   루틴 추천 API
+  record-event.ts        익명 이벤트 저장 API
+  product-click.ts       제품 클릭 추적 redirect API
+  skin-coach-summary.ts  오너 대시보드 요약 API
+  export-analytics.ts    집계 데이터 CSV/JSON export
 
 convex/
-  schema.ts                  skinCoachEvents 테이블 스키마
-  analytics.ts               recordEvent, seedEvents, recentEvents, summary 함수
+  schema.ts              skinCoachEvents 스키마
+  analytics.ts           recordEvent, recentEvents, summary 함수
 
 public/
-  .well-known/ai-plugin.json ChatGPT plugin manifest
-  .well-known/api-catalog    RFC 9727 API Catalog
-  openapi.yaml               OpenAPI 3.1 spec
-  logo.svg                   plugin logo
-  privacy.html               개인정보 처리 원칙
+  owner-dashboard.html   모바일 최적화 오너 대시보드
+  skin-coach-widget.html MCP 앱 UI resource
+  openapi.yaml           OpenAPI 3.1 보조 스펙
+  .well-known/           plugin manifest, API catalog
+  privacy.html           개인정보 처리 원칙
+
+docs/
+  CHATGPT_APPS_REGISTRATION.md
 ```
 
 ---
 
-## 12. 검증 명령
+## 8. 주의사항
 
-```bash
-# Manifest
-curl https://meditherapy-skin-coach-dashboard.vercel.app/.well-known/ai-plugin.json
-
-# OpenAPI
-curl https://meditherapy-skin-coach-dashboard.vercel.app/openapi.yaml
-
-# 루틴 추천
-curl -X POST https://meditherapy-skin-coach-dashboard.vercel.app/api/recommend-routine \
-  -H 'Content-Type: application/json' \
-  --data '{"skinType":"민감성","concerns":["트러블","붉음"],"sensitivity":"high","goalSpeed":"14일","locale":"ko-KR","consentForAnalytics":true}'
-
-# 요약
-curl 'https://meditherapy-skin-coach-dashboard.vercel.app/api/skin-coach-summary?range=all'
-```
-
----
-
-## 13. 현재 상태
-
-- Vercel production 배포 완료
-- Convex DB 연결 완료
-- Plugin manifest 접근 가능
-- OpenAPI 접근 가능
-- API Catalog 접근 가능
-- 루틴 추천 API 테스트 완료
-- 익명 이벤트 저장 테스트 완료
-- GitHub plugin repo 분리 완료
+- 이 프로젝트의 주 연결 방식은 **ChatGPT Apps SDK / MCP**입니다.
+- OpenAPI/Plugin Manifest는 호환성과 문서화를 위한 보조 파일입니다.
+- ChatGPT native Tasks/할일 기능은 host가 제공해야 실제 생성 가능합니다. 이 플러그인은 `gptTodoPlan` 구조를 제공해 변환 가능하게 합니다.
+- 오너 대시보드는 현재 요청에 따라 접근 보호를 적용하지 않았습니다. 운영 단계에서는 별도 관리자 보호를 추가할 수 있습니다.
