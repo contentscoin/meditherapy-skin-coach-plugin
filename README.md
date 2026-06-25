@@ -4,6 +4,8 @@
 
 이 repo는 ChatGPT Actions/플러그인 연결을 위한 **API, OpenAPI 스펙, plugin manifest, Convex DB schema/functions**를 담고 있습니다.
 
+현재 추천 API는 **CrabAgent V2 제품 온톨로지팩**을 로컬 경량 인덱스로 사용합니다. 제품 223개를 86개 제품 패밀리로 정리하고, 피부고민·성분 cue·루틴 역할·안전룰·추천 근거를 기준으로 reranking합니다.
+
 ---
 
 ## 1. 한 줄 정의

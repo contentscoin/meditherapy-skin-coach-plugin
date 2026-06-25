@@ -1,4 +1,5 @@
 import { anonHash, cleanArray, cleanText, cors, parseBody, recordSkinCoachEvent, VercelRequest, VercelResponse } from "./_shared.js";
+import { ontologyBuild, productFamilies, ProductFamily } from "./product-ontology-v2.js";
 
 type RequestBody = {
   skinType?: string;
@@ -10,30 +11,122 @@ type RequestBody = {
   consentForAnalytics?: boolean;
 };
 
-const productMap: Record<string, string[]> = {
-  "피부결": ["7일 완성 깐달걀 키트", "히알루론산 세럼", "레티날 세럼"],
-  "모공": ["AHA/BHA 루틴", "블러 세럼/크림"],
-  "잡티": ["트라넥삼산 크림", "비타민 스킨부스터", "알부틴 스킨부스터"],
-  "톤": ["비타민 스킨부스터", "블러 크림"],
-  "건조": ["히알루론산 스킨부스터 퍼스트 세럼", "스쿠알란 보습 루틴"],
-  "트러블": ["PDRN 스킨부스터 세럼", "진정 크림"],
-  "민감": ["PDRN 스킨부스터 세럼", "저자극 진정 루틴"],
-  "주름": ["레티날 스킨부스터 세럼", "레티날 크림"],
-  "화장밀림": ["포쎄라 블러 세럼", "포쎄라 핑크 블러 크림"],
+type RankedProduct = ProductFamily & {
+  score: number;
+  matchedSignals: string[];
 };
 
-function selectProducts(concerns: string[], sensitivity: string) {
-  const picked = new Set<string>();
-  for (const concern of concerns) {
-    for (const [key, products] of Object.entries(productMap)) {
-      if (concern.includes(key) || key.includes(concern)) products.forEach((product) => picked.add(product));
+const concernAliases: Record<string, string[]> = {
+  texture_pores: ["피부결", "모공", "각질", "요철", "블랙헤드", "texture", "pore"],
+  brightening_spots: ["잡티", "기미", "톤", "미백", "광채", "dark spot", "brightening"],
+  hydration_barrier: ["건조", "수분", "보습", "장벽", "속건조", "hydration", "barrier"],
+  sensitive_trouble: ["트러블", "민감", "붉", "홍조", "진정", "여드름", "sensitive", "trouble", "acne"],
+  wrinkle_elasticity: ["주름", "탄력", "리프팅", "안티에이징", "wrinkle", "elastic", "lifting"],
+  body_homecare: ["바디", "붓기", "셀룰", "라인", "body"],
+};
+
+function normalize(value: string) {
+  return value.toLowerCase().replace(/\s+/g, "");
+}
+
+function targetConcerns(concerns: string[]) {
+  const targets = new Set<string>();
+  const joined = normalize(concerns.join(" "));
+  for (const [ontologyConcern, aliases] of Object.entries(concernAliases)) {
+    if (aliases.some((alias) => joined.includes(normalize(alias)))) targets.add(ontologyConcern);
+  }
+  if (targets.size === 0) targets.add("general_skincare");
+  return targets;
+}
+
+function isHighSensitivity(sensitivity: string) {
+  return ["high", "민감", "sensitive"].some((token) => normalize(sensitivity).includes(normalize(token)));
+}
+
+function containsActiveIngredient(product: ProductFamily) {
+  return product.ingredients.some((ingredient) => ["retinal", "retinol", "aha_bha", "vitamin_c"].includes(ingredient));
+}
+
+function rankProducts(concerns: string[], sensitivity: string, goalSpeed: string): RankedProduct[] {
+  const targets = targetConcerns(concerns);
+  const highSensitivity = isHighSensitivity(sensitivity);
+  const wantsFastRoutine = /7|빠른|fast/i.test(goalSpeed);
+
+  return productFamilies
+    .map((product) => {
+      const matchedSignals: string[] = [];
+      let score = product.confidence * 20 + Math.min(product.recordCount, 12);
+
+      for (const concern of product.concerns) {
+        if (targets.has(concern)) {
+          score += 35;
+          matchedSignals.push(`concern:${concern}`);
+        }
+      }
+
+      if (targets.has("sensitive_trouble") && product.ingredients.some((ingredient) => ["centella", "pdrn", "tea_tree", "ceramide"].includes(ingredient))) {
+        score += 16;
+        matchedSignals.push("calming_ingredient_cue");
+      }
+
+      if (targets.has("hydration_barrier") && product.ingredients.some((ingredient) => ["hyaluronic_acid", "squalane", "ceramide", "centella"].includes(ingredient))) {
+        score += 14;
+        matchedSignals.push("barrier_ingredient_cue");
+      }
+
+      if (targets.has("brightening_spots") && product.ingredients.some((ingredient) => ["niacinamide", "vitamin_c"].includes(ingredient))) {
+        score += 12;
+        matchedSignals.push("brightening_ingredient_cue");
+      }
+
+      if (targets.has("texture_pores") && product.ingredients.some((ingredient) => ["aha_bha", "retinal", "niacinamide"].includes(ingredient))) {
+        score += 12;
+        matchedSignals.push("texture_ingredient_cue");
+      }
+
+      if (wantsFastRoutine && product.categories.includes("kit_routine")) {
+        score += 10;
+        matchedSignals.push("fast_routine_kit");
+      }
+
+      if (highSensitivity) {
+        if (product.concerns.includes("sensitive_trouble")) score += 14;
+        if (containsActiveIngredient(product)) {
+          score -= 22;
+          matchedSignals.push("active_ingredient_penalty_for_sensitive_skin");
+        }
+      }
+
+      return { ...product, score: Math.round(score), matchedSignals };
+    })
+    .filter((product) => product.matchedSignals.length > 0 || product.concerns.includes("general_skincare"))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
+}
+
+function buildRoutineId(sensitivity: string, goalSpeed: string, rankedProducts: RankedProduct[]) {
+  if (isHighSensitivity(sensitivity)) return "sensitive-calming-14day";
+  if (goalSpeed.includes("30")) return "skin-coach-30day";
+  if (rankedProducts.some((product) => product.categories.includes("kit_routine"))) return "ontology-guided-7day-routine";
+  return "skin-coach-ontology-v2";
+}
+
+function mergedSafetyRules(products: RankedProduct[], sensitivity: string) {
+  const rules = new Set<string>([
+    "자극 점수 3 이상이면 기능성 성분 빈도 줄이기",
+    "새 트러블이 늘면 진정 루틴으로 전환",
+  ]);
+  for (const product of products) {
+    for (const rule of product.safetyRules) {
+      if (rule === "active_ingredient_caution") rules.add("레티날/레티놀/AHA/BHA 등 액티브 성분은 낮은 빈도부터 시작");
+      if (rule === "prefer_pm_use_and_daytime_sunscreen") rules.add("레티날/레티놀 제품은 저녁 사용 중심, 낮에는 자외선 차단");
+      if (rule === "start_gradually_and_check_irritation") rules.add("처음 3일은 건조함·따가움·붉어짐을 체크");
+      if (rule === "patch_test_for_sensitive_skin") rules.add("민감피부는 얼굴 전체 사용 전 패치테스트");
+      if (rule === "sun_care_recommended") rules.add("낮 루틴에는 자외선 차단 포함");
     }
   }
-  if (picked.size === 0) ["7일 완성 깐달걀 키트", "히알루론산 세럼"].forEach((product) => picked.add(product));
-  if (sensitivity === "high" || sensitivity.includes("민감")) {
-    return [...picked].filter((product) => !product.includes("AHA") && !product.includes("레티날")).concat(["패치테스트", "저자극 진정 루틴"]).slice(0, 5);
-  }
-  return [...picked].slice(0, 5);
+  if (isHighSensitivity(sensitivity)) rules.add("민감피부는 레티날/AHA/BHA 동시 사용 금지");
+  return [...rules].slice(0, 8);
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -47,22 +140,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const sensitivity = cleanText(body.sensitivity, "medium");
   const goalSpeed = cleanText(body.goalSpeed, "7일");
   const locale = cleanText(body.locale, "ko-KR");
-  const products = selectProducts(concerns, sensitivity);
-  const routineId = sensitivity.includes("high") || sensitivity.includes("민감") ? "sensitive-calming-14day" : goalSpeed.includes("30") ? "skin-coach-30day" : "glass-skin-7day";
+  const rankedProducts = rankProducts(concerns, sensitivity, goalSpeed);
+  const recommendedProducts = rankedProducts.map((product) => product.name);
+  const routineId = buildRoutineId(sensitivity, goalSpeed, rankedProducts);
 
   const result = {
     pluginName: "메디테라피 스킨 코치",
     routineId,
-    summary: `${skinType} 피부의 ${concerns.join(", ") || "기본 피부결"} 고민을 위한 ${goalSpeed} 루틴입니다.`,
-    recommendedProducts: products,
-    morning: ["저자극 세안", "수분 세럼", "보습/블러 크림", "자외선 차단"],
-    night: sensitivity.includes("high") || sensitivity.includes("민감") ? ["저자극 세안", "진정 세럼", "보습 크림"] : ["세안", "기능성 세럼 격일 사용", "보습 크림"],
+    summary: `${skinType} 피부의 ${concerns.join(", ") || "기본 피부결"} 고민을 위한 ${goalSpeed} 온톨로지 기반 루틴입니다.`,
+    recommendedProducts,
+    recommendedProductDetails: rankedProducts.map((product) => ({
+      familyKey: product.familyKey,
+      name: product.name,
+      score: product.score,
+      confidence: product.confidence,
+      concerns: product.concerns,
+      ingredients: product.ingredients,
+      useCases: product.useCases,
+      matchedSignals: product.matchedSignals,
+      exampleUrl: product.exampleUrl,
+    })),
+    morning: ["저자극 세안", "수분/장벽 세럼", "보습 또는 블러 크림", "자외선 차단"],
+    night: isHighSensitivity(sensitivity) ? ["저자극 세안", "진정/장벽 세럼", "보습 크림"] : ["세안", "온톨로지 추천 기능성 제품 격일 사용", "보습 크림"],
     timeline: [
       { day: 1, check: "패치테스트, 따가움/건조함 기록" },
       { day: 3, check: "피부결, 붉음, 트러블 변화 체크" },
       { day: 7, check: "화장 밀착, 피부결, 만족도 평가" },
     ],
-    safetyRules: ["자극 점수 3 이상이면 기능성 성분 빈도 줄이기", "새 트러블이 늘면 진정 루틴으로 전환", "민감피부는 레티날/AHA/BHA 동시 사용 금지"],
+    safetyRules: mergedSafetyRules(rankedProducts, sensitivity),
+    ontology: {
+      version: ontologyBuild.version,
+      packageId: ontologyBuild.packageId,
+      source: ontologyBuild.source,
+      recordsTotal: ontologyBuild.recordsTotal,
+      familiesTotal: ontologyBuild.familiesTotal,
+      qaScore: ontologyBuild.qaScore,
+      releaseReady: ontologyBuild.releaseReady,
+      rankingMode: "local_crabagent_v2_family_rerank",
+    },
     analyticsSaved: false,
   };
 
@@ -74,10 +189,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       concerns,
       sensitivity,
       routineId,
-      productIds: products.map((p) => p.toLowerCase().replace(/[^a-z0-9가-힣]+/gi, "-")),
+      productIds: rankedProducts.map((product) => product.familyKey),
       satisfactionScore: undefined,
       localeBucket: locale,
-      metadata: { source: "plugin_api", privacy: "sanitized_no_pii" },
+      metadata: { source: "plugin_api", privacy: "sanitized_no_pii", ontologyVersion: ontologyBuild.version, rankingMode: "local_crabagent_v2_family_rerank" },
     });
     result.analyticsSaved = true;
   }
