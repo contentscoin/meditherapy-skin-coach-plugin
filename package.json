@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc -b",
+    "build": "tsc -b && rm -rf dist && cp -R public dist",
     "typecheck": "tsc -b",
     "convex:dev": "convex dev",
     "convex:deploy": "convex deploy"
