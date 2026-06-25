@@ -1,0 +1,176 @@
+openapi: 3.1.0
+info:
+  title: Meditherapy Skin Coach Plugin API
+  description: |
+    메디테라피 스킨 코치 API. 피부고민 기반 루틴 추천, 익명 체크인 저장, Convex 기반 사용 데이터 요약을 제공합니다.
+    개인정보는 저장하지 않고 구조화된 익명 이벤트만 저장합니다.
+  version: 1.0.0
+servers:
+  - url: https://meditherapy-skin-coach-dashboard.vercel.app
+paths:
+  /api/recommend-routine:
+    post:
+      operationId: recommendRoutine
+      summary: 피부고민 기반 메디테라피 루틴 추천
+      description: 피부타입, 고민, 민감도, 목표 속도를 받아 제품 루틴과 체크인 일정을 추천합니다. consentForAnalytics가 true일 때만 익명 이벤트를 저장합니다.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                skinType:
+                  type: string
+                  example: 복합성
+                concerns:
+                  type: array
+                  items:
+                    type: string
+                  example: [피부결, 모공, 화장밀림]
+                sensitivity:
+                  type: string
+                  enum: [low, medium, high, 민감, 보통, 낮음]
+                  example: medium
+                budget:
+                  type: string
+                  example: 5만원 이하
+                goalSpeed:
+                  type: string
+                  example: 7일
+                locale:
+                  type: string
+                  example: ko-KR
+                consentForAnalytics:
+                  type: boolean
+                  description: 익명 사용 이벤트 저장 동의 여부
+                  default: false
+      responses:
+        "200":
+          description: 추천 루틴
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pluginName:
+                    type: string
+                  routineId:
+                    type: string
+                  summary:
+                    type: string
+                  recommendedProducts:
+                    type: array
+                    items:
+                      type: string
+                  morning:
+                    type: array
+                    items:
+                      type: string
+                  night:
+                    type: array
+                    items:
+                      type: string
+                  timeline:
+                    type: array
+                    items:
+                      type: object
+                  safetyRules:
+                    type: array
+                    items:
+                      type: string
+                  analyticsSaved:
+                    type: boolean
+  /api/record-event:
+    post:
+      operationId: recordSkinCoachEvent
+      summary: 익명 루틴/체크인 이벤트 저장
+      description: 이름, 전화번호, 이메일, 주소, 주문번호, 원문 대화, 사진 원본을 받지 않고 익명 구조화 이벤트만 Convex DB에 저장합니다.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                eventType:
+                  type: string
+                  enum: [routine_recommendation, task_schedule_created, checkin, routine_adjustment, product_feedback, ontology_gap]
+                userSeed:
+                  type: string
+                  description: 익명 해시 생성을 위한 비식별 seed. 원문 개인정보 사용 금지.
+                skinType:
+                  type: string
+                concerns:
+                  type: array
+                  items:
+                    type: string
+                sensitivity:
+                  type: string
+                routineId:
+                  type: string
+                productIds:
+                  type: array
+                  items:
+                    type: string
+                checkinDay:
+                  type: number
+                drynessScore:
+                  type: number
+                irritationScore:
+                  type: number
+                satisfactionScore:
+                  type: number
+                action:
+                  type: string
+                locale:
+                  type: string
+                ontologyGapFields:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        "200":
+          description: 저장 결과
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  id:
+                    type: string
+                  saved:
+                    type: object
+  /api/skin-coach-summary:
+    get:
+      operationId: getSkinCoachSummary
+      summary: 익명 사용 데이터 대시보드 요약 조회
+      parameters:
+        - name: range
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [all, 7d, 24h]
+      responses:
+        "200":
+          description: Convex 기반 집계 결과
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalEvents:
+                    type: number
+                  funnel:
+                    type: object
+                  avgSatisfaction:
+                    type: number
+                  topConcerns:
+                    type: array
+                    items:
+                      type: object
+                  ontologyGaps:
+                    type: object

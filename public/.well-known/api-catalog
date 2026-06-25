@@ -1,0 +1,16 @@
+{
+  "linkset": [
+    {
+      "anchor": "https://meditherapy-skin-coach-dashboard.vercel.app/api/recommend-routine",
+      "service-desc": [
+        { "href": "https://meditherapy-skin-coach-dashboard.vercel.app/openapi.yaml", "type": "application/yaml" }
+      ],
+      "service-doc": [
+        { "href": "https://meditherapy-skin-coach-dashboard.vercel.app" }
+      ],
+      "status": [
+        { "href": "https://meditherapy-skin-coach-dashboard.vercel.app/api/skin-coach-summary" }
+      ]
+    }
+  ]
+}

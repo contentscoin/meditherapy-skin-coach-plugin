@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Meditherapy Skin Coach">
+  <defs>
+    <linearGradient id="g" x1="80" y1="40" x2="432" y2="472" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ff9eb6"/>
+      <stop offset="0.55" stop-color="#ff6b91"/>
+      <stop offset="1" stop-color="#8b3a62"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#fff8f8"/>
+  <circle cx="256" cy="256" r="184" fill="url(#g)"/>
+  <path d="M164 292c52 46 132 46 184 0" fill="none" stroke="white" stroke-width="28" stroke-linecap="round"/>
+  <path d="M191 207c18-28 48-28 66 0M255 207c18-28 48-28 66 0" fill="none" stroke="white" stroke-width="24" stroke-linecap="round"/>
+  <path d="M256 108c-42 36-60 75-54 117 6 43 35 69 54 81 19-12 48-38 54-81 6-42-12-81-54-117Z" fill="white" opacity=".22"/>
+</svg>

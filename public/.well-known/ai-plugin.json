@@ -1,0 +1,16 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "메디테라피 스킨 코치",
+  "name_for_model": "meditherapy_skin_coach",
+  "description_for_human": "피부고민 기반 메디테라피 루틴 추천, GPT 할 일 체크인, 익명 사용 데이터 분석 플러그인입니다.",
+  "description_for_model": "Recommend Meditherapy skincare routines from skin type, concerns, sensitivity, budget, and goal speed. Create routine steps and safety rules. Record only anonymized structured usage/check-in events when the user consents. Never store names, phone numbers, emails, addresses, order IDs, raw photos, payment info, or full raw chat text.",
+  "auth": { "type": "none" },
+  "api": {
+    "type": "openapi",
+    "url": "https://meditherapy-skin-coach-dashboard.vercel.app/openapi.yaml",
+    "is_user_authenticated": false
+  },
+  "logo_url": "https://meditherapy-skin-coach-dashboard.vercel.app/logo.svg",
+  "contact_email": "support@example.com",
+  "legal_info_url": "https://meditherapy-skin-coach-dashboard.vercel.app/privacy.html"
+}
