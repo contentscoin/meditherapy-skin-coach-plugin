@@ -10,9 +10,9 @@
 
 > README 또는 제출 페이지에 바로 올릴 수 있는 1분 설명 영상입니다.
 
-[메디테라피 스킨 코치 설명 영상 MP4](docs/media/meditherapy-skin-coach-explainer.mp4)
+[메디테라피 스킨 코치 설명 영상 MP4](https://meditherapy-skin-coach-dashboard.vercel.app/media/meditherapy-skin-coach-explainer.mp4)
 
-![설명 영상 미리보기](docs/media/meditherapy-skin-coach-explainer-contact-sheet.png)
+![설명 영상 미리보기](https://meditherapy-skin-coach-dashboard.vercel.app/media/meditherapy-skin-coach-explainer-contact-sheet.png)
 
 스크립트: [`docs/media/meditherapy-skin-coach-explainer-transcript.md`](docs/media/meditherapy-skin-coach-explainer-transcript.md)
 
