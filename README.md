@@ -16,6 +16,8 @@
 
 스크립트: [`docs/media/meditherapy-skin-coach-explainer-transcript.md`](docs/media/meditherapy-skin-coach-explainer-transcript.md)
 
+제출본 정리: [`docs/PRIMER_HACKATHON_SUBMISSION.md`](docs/PRIMER_HACKATHON_SUBMISSION.md)
+
 ---
 
 ## 바로 확인하기
